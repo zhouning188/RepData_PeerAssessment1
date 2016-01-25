@@ -1,10 +1,4 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
-
+"Reproducible Research: Peer Assessment 1"
 
 ## Loading and preprocessing the data
 
@@ -53,11 +47,35 @@ NAs <- sum(is.na(file$steps))  # count NAs
 with(subset(file, is.na(steps)), qplot(interval))  
 qplot(file$date, is.na(file$steps))
 
-#a new version of the dataset file with NA values filled with interval
+#create a new version of the dataset file with NA values filled with interval
 
 file_filled <- merge(file, interval_mean, by='interval')
-file_filled$steps[is.na(file_filled$steps)] <- 
-  as.integer(file_filled$mean_steps[is.na(file_filled$steps)])
+file_filled$steps[is.na(file_filled$steps)] <- as.integer
+(file_filled$mean_steps[is.na(file_filled$steps)])
 
+#daily 
+data_daily <- data.frame(rowsum(file_filled$steps, file_filled$date))
+names(data_daily) <- c('steps')
+qplot(data_daily$steps, binwidth = 1000)
+daily_mean_steps <- mean(data_daily$steps, na.rm = TRUE)
+daily_median_steps <- median(data_daily$steps, na.rm = TRUE)
 
 ## Are there differences in activity patterns between weekdays and weekends?
+weekendays <- c('Saturday', 'Sunday')
+file_filled$weekday <- weekdays(as.Date(file_filled$date))
+file_filled$daytype <- 'weekday'
+file_filled$daytype[file_filled$weekday %in% weekendays] <- 'weekend'
+file_filled$daytype <- as.factor(file_filled$daytype)
+filled_steps_interval <- with(file_filled, 
+                              aggregate(steps, list(daytype, interval), mean))
+names(filled_steps_interval) <- c('daytype', 'interval', 'mean.steps')
+
+day.type <- lapply(weekdays(as.Date(file$date)) %in% c("Saturday", "Sunday"), 
+                   function(is.weekend) {
+                     if(is.weekend) {
+                       'weekend'
+                     } else {
+                       'weekday'
+                     }})
+file$day.type <- factor(day.type, levels = c('weekend', 'weekday'))
+ggplot(data = file, aes(x = interval, y = steps)) + geom_line() + facet_wrap(~ day.type)
